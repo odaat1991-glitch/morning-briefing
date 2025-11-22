@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morning Briefing | Daily Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-main: #1a202c;
+            --text-muted: #718096;
+            --accent: #3182ce;
+            --accent-hover: #2b6cb0;
+            --border-radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+        body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 40px; }
+
+        /* Header & Nav */
+        header {
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .brand { font-size: 1.5rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+        .brand span { color: var(--accent); }
+
+        .controls { display: flex; gap: 1rem; align-items: center; overflow-x: auto; padding-bottom: 5px; }
+        
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            background: var(--card-bg);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover { background: #edf2f7; color: var(--accent); }
+        .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        .mode-switch {
+            display: flex;
+            background: #edf2f7;
+            border-radius: 8px;
+            padding: 4px;
+            font-size: 0.8rem;
+        }
+        .mode-option { padding: 4px 12px; border-radius: 6px; cursor: pointer; color: var(--text-muted); }
+        .mode-option.active { background: white; color: var(--text-main); font-weight: 600; shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+        /* Main Layout */
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .section-title { margin-bottom: 1.5rem; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        
+        /* Grid */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+        .card.disabled { opacity: 0.6; pointer-events: none; cursor: not-allowed; }
+
+        .card-image-container {
+            width: 100%;
+            height: 180px;
+            background-color: #cbd5e0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-image { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .card:hover .card-image { transform: scale(1.05); }
+
+        .card-content { padding: 1.25rem; display: flex; flex-direction: column; flex-grow: 1; }
+
+        .card-source {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .card-time { color: var(--text-muted); font-weight: 400; }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 0.75rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-summary {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex-grow: 1;
+        }
+
+        .card-footer {
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid #edf2f7;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Loading State */
+        .loader { text-align: center; padding: 4rem; color: var(--text-muted); grid-column: 1 / -1; }
+        .error-msg { text-align: center; color: #e53e3e; padding: 2rem; grid-column: 1 / -1; }
+
+        /* Utilities */
+        .fallback-img { display: flex; align-items: center; justify-content: center; height: 100%; color: #718096; font-weight: bold; background: #e2e8f0; }
+
+        @media (max-width: 768px) {
+            header { flex-direction: column; align-items: flex-start; }
+            .controls { width: 100%; padding-bottom: 10px; }
+            .news-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <span>☕</span> Morning Briefing
+    </div>
+    <div class="controls">
+        <div class="mode-switch">
+            <div class="mode-option active" onclick="setMode('daily')">Daily</div>
+            <div class="mode-option" onclick="setMode('weekly')">Weekly</div>
+        </div>
+        <button class="filter-btn active" onclick="loadCategory('gaming')">Gaming</button>
+        <button class="filter-btn" onclick="loadCategory('ai')">AI</button>
+        <button class="filter-btn" onclick="loadCategory('business')">Business</button>
+        <button class="filter-btn" onclick="loadCategory('youtube')">YouTube Trends</button>
+    </div>
+</header>
+
+<div class="container">
+    <div class="section-title" id="section-header">Gaming News</div>
+    <div id="news-grid" class="news-grid">
+        </div>
+</div>
+
+<script>
+    // --- API Configuration ---
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzjLzBQb3rzUzip0nsaCHHYahXvTS3RJgTdLk6iyTXoe1ZJ_UhBGiWPUcUKwMXlqqc/exec';
+
+    // Helper: Calculate relative time
+    function timeAgo(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const seconds = Math.floor((now - date) / 1000);
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + " years ago";
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + " months ago";
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + " days ago";
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + " hours ago";
+        interval = seconds / 60;
+        if (interval > 1) return Math.floor(interval) + " mins ago";
+        return "Just now";
+    }
+
+    // --- Data Fetching ---
+
+    async function fetchNews(category = 'technology', query = '', country = 'us', pageSize = 20) {
+        // Modified to append query if present, enabling specific topic fetching like "AI" or "Gaming"
+        let url = `${APPS_SCRIPT_URL}?action=news&category=${category}&country=${country}&pageSize=${pageSize}`;
+        if(query) url += `&q=${encodeURIComponent(query)}`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.status === 'ok') return data.articles;
+        throw new Error(data.message || 'Failed to load news');
+    }
+
+    async function fetchYouTube(query = 'latest news', maxResults = 12) {
+        const url = `${APPS_SCRIPT_URL}?action=youtube&q=${encodeURIComponent(query)}&maxResults=${maxResults}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (!data.error) return data.items;
+        throw new Error(data.error.message || 'Failed to load YouTube videos');
+    }
+
+    // --- UI Rendering ---
+
+    const grid = document.getElementById('news-grid');
+    const sectionHeader = document.getElementById('section-header');
+    let currentMode = 'daily'; // 'daily' or 'weekly' (Visual filter)
+
+    function setMode(mode) {
+        currentMode = mode;
+        document.querySelectorAll('.mode-option').forEach(el => el.classList.remove('active'));
+        event.target.classList.add('active');
+        // In a real app, this would trigger a re-fetch with different date params. 
+        // For this demo, we will just re-render to simulate a refresh.
+        const activeBtn = document.querySelector('.filter-btn.active');
+        // Trigger the click of the active button to reload
+        activeBtn.click();
+    }
+
+    function renderCards(items, type) {
+        grid.innerHTML = '';
+        
+        if (items.length === 0) {
+            grid.innerHTML = '<div class="error-msg">No stories found for this category.</div>';
+            return;
+        }
+
+        items.forEach(item => {
+            // Normalizing data between News and YouTube
+            const isVideo = type === 'youtube';
+            const title = isVideo ? item.snippet.title : item.title;
+            const desc = isVideo ? item.snippet.description : (item.description || 'No summary available.');
+            const date = isVideo ? item.snippet.publishedAt : item.publishedAt;
+            const source = isVideo ? item.snippet.channelTitle : (item.source.name || 'Unknown');
+            const url = isVideo ? `https://www.youtube.com/watch?v=${item.id.videoId}` : item.url;
+            
+            let imgUrl = '';
+            if (isVideo) imgUrl = item.snippet.thumbnails.high.url;
+            else imgUrl = item.urlToImage;
+
+            // Validation for disabled state
+            const isMissingLink = !url;
+            
+            const card = document.createElement('a');
+            card.className = `card ${isMissingLink ? 'disabled' : ''}`;
+            if (!isMissingLink) {
+                card.href = url;
+                card.target = "_blank";
+                card.rel = "noopener noreferrer";
+            }
+
+            card.innerHTML = `
+                <div class="card-image-container">
+                    ${imgUrl 
+                        ? `<img src="${imgUrl}" class="card-image" alt="Image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` 
+                        : ''}
+                    <div class="fallback-img" style="${imgUrl ? 'display:none;' : ''}">
+                        ${isVideo ? '▶' : '📰'} No Image
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="card-source">
+                        <span>${source}</span>
+                        <span class="card-time">${timeAgo(date)}</span>
+                    </div>
+                    <div class="card-title">${title}</div>
+                    <div class="card-summary">${desc}</div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    async function loadCategory(category) {
+        // Update active state
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        grid.innerHTML = '<div class="loader">Loading your briefing...</div>';
+
+        try {
+            let items = [];
+            if (category === 'gaming') {
+                sectionHeader.textContent = 'Gaming News';
+                // Mapping Gaming to Technology + Query
+                items = await fetchNews('technology', 'gaming');
+            } else if (category === 'ai') {
+                sectionHeader.textContent = 'Artificial Intelligence';
+                // Mapping AI to Technology + Query
+                items = await fetchNews('technology', 'artificial intelligence');
+            } else if (category === 'business') {
+                sectionHeader.textContent = 'Business Headlines';
+                items = await fetchNews('business');
+            } else if (category === 'youtube') {
+                sectionHeader.textContent = 'Trending on YouTube';
+                // Fetch trends based on active other categories or generic
+                items = await fetchYouTube('technology gaming business news');
+            }
+
+            // Filter out removed/dead links often found in NewsAPI
+            const validItems = items.filter(i => i.title !== "[Removed]");
+            renderCards(validItems, category === 'youtube' ? 'youtube' : 'news');
+
+        } catch (error) {
+            console.error(error);
+            grid.innerHTML = `<div class="error-msg">⚠️ Could not load briefing.<br><small>${error.message}</small></div>`;
+        }
+    }
+
+    // Initial Load
+    document.addEventListener('DOMContentLoaded', () => {
+        // Simulate clicking the first button
+        document.querySelector('.filter-btn').click(); 
+    });
+
+</script>
+</body>
+</html>
