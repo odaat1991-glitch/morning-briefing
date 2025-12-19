@@ -585,6 +585,43 @@
             }
         }
 
+        const CATEGORY_FALLBACKS = {
+            gaming: [
+                'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1552824236-ad36b4a274c1?auto=format&fit=crop&w=800&q=80'
+            ],
+            ai: [
+                'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1620712943543-bcc4628c6757?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80'
+            ],
+            business: [
+                'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80'
+            ],
+            youtube: [
+                'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1533750516457a7f992034fce?auto=format&fit=crop&w=800&q=80'
+            ],
+            general: [
+                'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80'
+            ]
+        };
+
+        function getFallbackImage(title = '', category = 'general') {
+            const cat = category.toLowerCase().includes('ai') ? 'ai' : (CATEGORY_FALLBACKS[category] ? category : 'general');
+            const list = CATEGORY_FALLBACKS[cat] || CATEGORY_FALLBACKS.general;
+            // Simple hash for title to pick a consistent index
+            let hash = 0;
+            for (let i = 0; i < title.length; i++) hash = title.charCodeAt(i) + ((hash << 5) - hash);
+            const index = Math.abs(hash) % list.length;
+            return list[index];
+        }
+
         function toggleTheme() {
             state.theme = state.theme === 'light' ? 'dark' : 'light';
             localStorage.setItem('mb_theme', state.theme);
@@ -718,6 +755,11 @@
                     imgUrl = item.urlToImage;
                 }
 
+                // --- Resolution for missing images ---
+                if (!imgUrl) {
+                    imgUrl = getFallbackImage(title, state.currentCategory);
+                }
+
                 // Cleanup
                 if (title) title = title.replace('<![CDATA[', '').replace(']]>', '');
 
@@ -823,7 +865,7 @@
                         items = await fetchNews('technology', 'gaming');
                     } else if (category === 'ai') {
                         sectionHeader.textContent = 'Artificial Intelligence';
-                        items = await fetchNews('technology', 'artificial intelligence');
+                        items = await fetchNews('technology', 'AI artificial intelligence OpenAI');
                     } else if (category === 'business') {
                         sectionHeader.textContent = 'Business Headlines';
                         items = await fetchNews('business');
